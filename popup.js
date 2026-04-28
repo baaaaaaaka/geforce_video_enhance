@@ -12,19 +12,46 @@ const smoothStatusText = document.querySelector("#smoothStatusText");
 let currentEnabled = DEFAULT_ENABLED;
 let currentSmoothEnabled = false;
 
+function t(key, substitutions) {
+  const message = chrome.i18n?.getMessage(key, substitutions);
+  return message || key;
+}
+
+function applyStaticI18n() {
+  const uiLanguage = chrome.i18n?.getUILanguage?.() || "en";
+  const normalizedLanguage = uiLanguage.replace("_", "-").toLowerCase();
+  document.documentElement.lang =
+    normalizedLanguage.startsWith("zh-tw") || normalizedLanguage.startsWith("zh-hk")
+      ? "zh-TW"
+      : normalizedLanguage.startsWith("zh")
+      ? "zh-CN"
+      : "en";
+  document.title = t("popupTitle");
+
+  document.querySelectorAll("[data-i18n]").forEach((element) => {
+    element.textContent = t(element.dataset.i18n);
+  });
+
+  document.querySelectorAll("[data-i18n-aria-label]").forEach((element) => {
+    element.setAttribute("aria-label", t(element.dataset.i18nAriaLabel));
+  });
+}
+
 function render(enabled) {
   currentEnabled = enabled;
   toggle.checked = enabled;
   statusDot.classList.toggle("is-enabled", enabled);
-  statusText.textContent = enabled ? "当前模式：VSR 原生视频层" : "当前模式：non-VSR canvas 显示";
+  statusText.textContent = enabled ? t("popupVsrStatusEnabled") : t("popupVsrStatusDisabled");
 }
 
 function renderSmooth(enabled) {
   currentSmoothEnabled = enabled;
   smoothToggle.checked = enabled;
   smoothStatusDot.classList.toggle("is-enabled", enabled);
-  smoothStatusText.textContent = enabled ? "当前模式：Smooth Motion 覆盖层" : "当前模式：原生 YouTube 输出";
+  smoothStatusText.textContent = enabled ? t("popupSmoothStatusEnabled") : t("popupSmoothStatusDisabled");
 }
+
+applyStaticI18n();
 
 chrome.storage.local.get({
   [STORAGE_KEY]: DEFAULT_ENABLED,
@@ -39,7 +66,7 @@ toggle.addEventListener("change", async () => {
   const enabled = toggle.checked;
   render(enabled);
   toggle.disabled = true;
-  statusText.textContent = enabled ? "正在恢复 VSR 显示..." : "正在切换到 non-VSR 显示...";
+  statusText.textContent = enabled ? t("popupSwitchingVsr") : t("popupSwitchingNonVsr");
 
   chrome.runtime.sendMessage({ type: "switchMode", enabled }, (response) => {
     toggle.disabled = false;
@@ -59,7 +86,7 @@ smoothToggle.addEventListener("change", async () => {
   const enabled = smoothToggle.checked;
   renderSmooth(enabled);
   smoothToggle.disabled = true;
-  smoothStatusText.textContent = enabled ? "正在开启 Smooth Motion 覆盖层..." : "正在关闭 Smooth Motion 覆盖层...";
+  smoothStatusText.textContent = enabled ? t("popupStartingSmooth") : t("popupStoppingSmooth");
 
   sendActiveTabMessage({ type: "setSmoothOverlay", enabled }, (response) => {
     smoothToggle.disabled = false;
@@ -92,7 +119,7 @@ function sendActiveTabMessage(message, callback) {
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     const tabId = tabs[0]?.id;
     if (typeof tabId !== "number") {
-      callback({ ok: false, error: "没有可用的当前标签页" });
+      callback({ ok: false, error: t("noActiveTab") });
       return;
     }
 
@@ -102,16 +129,16 @@ function sendActiveTabMessage(message, callback) {
 
 function getSwitchErrorMessage(response) {
   if (response?.installRequired) {
-    return "本地切换器未安装";
+    return t("localSwitcherNotInstalled");
   }
 
   if (response?.error) {
-    return `切换失败：${response.error}`;
+    return t("switchFailedWithError", response.error);
   }
 
   if (chrome.runtime.lastError) {
-    return `切换失败：${chrome.runtime.lastError.message}`;
+    return t("switchFailedWithError", chrome.runtime.lastError.message);
   }
 
-  return "切换失败";
+  return t("switchFailed");
 }

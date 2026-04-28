@@ -9,6 +9,11 @@ let nativePortPending = [];
 let activeSmoothOverlayTabId = null;
 let activeSmoothOverlayWindowId = null;
 
+function t(key, substitutions) {
+  const message = chrome.i18n?.getMessage(key, substitutions);
+  return message || key;
+}
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (!message || typeof message.type !== "string") {
     return false;
@@ -57,7 +62,7 @@ async function switchNativeMode(message, sender, enabled, mode) {
   if (!isAllowedUrl(url)) {
     return {
       ok: false,
-      error: "Only YouTube video pages can be switched."
+      error: t("bgOnlyYouTubeSwitch")
     };
   }
 
@@ -104,7 +109,7 @@ function sendNativeMessage(payload) {
         return;
       }
 
-      resolve(response || { ok: false, error: "Native host returned no response." });
+      resolve(response || { ok: false, error: t("nativeNoResponse") });
     });
   });
 }
@@ -117,7 +122,7 @@ async function handleSmoothOverlayMessage(message, sender) {
     if (!isAllowedUrl(url)) {
       return {
         ok: false,
-        error: "Only YouTube video pages can use Smooth Motion overlay."
+        error: t("bgOnlyYouTubeSmooth")
       };
     }
 
@@ -152,7 +157,7 @@ function sendNativePortMessage(payload) {
         removePendingNativePortRequest(pending);
         resolve({
           ok: false,
-          error: "Native host timed out.",
+          error: t("nativeTimedOut"),
           installRequired: false
         });
       }, NATIVE_PORT_TIMEOUT_MS)
@@ -186,11 +191,11 @@ function ensureNativePort() {
     }
 
     globalThis.clearTimeout(pending.timer);
-    pending.resolve(response || { ok: false, error: "Native host returned no response." });
+    pending.resolve(response || { ok: false, error: t("nativeNoResponse") });
   });
 
   nativePort.onDisconnect.addListener(() => {
-    const error = chrome.runtime.lastError?.message || "Native host disconnected.";
+    const error = chrome.runtime.lastError?.message || t("nativeDisconnected");
     nativePort = null;
 
     const pendingRequests = nativePortPending.splice(0);

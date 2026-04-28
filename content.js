@@ -20,10 +20,13 @@ const SMOOTH_POINTER_IDLE_MS = 1600;
 const SMOOTH_KEYBOARD_IDLE_MS = 900;
 const SMOOTH_CONTEXT_MENU_IDLE_MS = 2600;
 const SMOOTH_RESUME_POLL_MS = 200;
+const SMOOTH_START_WAIT_MS = 4500;
+const SMOOTH_START_POLL_MS = 150;
 
 let enabled = DEFAULT_ENABLED;
 let compareMode = false;
 let smoothOverlayEnabled = false;
+let smoothOverlayBusy = false;
 let enabledBeforeCompare = DEFAULT_ENABLED;
 let splitRatio = DEFAULT_SPLIT;
 let mountTimer = 0;
@@ -58,6 +61,11 @@ let bypassState = {
   cleanupCallbacks: []
 };
 
+function t(key, substitutions) {
+  const message = chrome.i18n?.getMessage(key, substitutions);
+  return message || key;
+}
+
 function readPreference() {
   chrome.storage.local.get({
     [STORAGE_KEY]: DEFAULT_ENABLED,
@@ -85,7 +93,7 @@ function writePreference(nextEnabled) {
   enabledBeforeCompare = enabled;
   updateButtons();
   applyRenderMode();
-  showPlayerToast(nextEnabled ? "正在恢复 VSR 显示..." : "正在切换到同页 non-VSR 显示...");
+  showPlayerToast(nextEnabled ? t("toastRestoringVsr") : t("toastSwitchingNonVsr"));
 
   chrome.runtime.sendMessage({
     type: "switchMode",
@@ -102,7 +110,7 @@ function writePreference(nextEnabled) {
       return;
     }
 
-    showPlayerToast(nextEnabled ? "已恢复 VSR 显示" : "已切换到同页 non-VSR 显示");
+    showPlayerToast(nextEnabled ? t("toastRestoredVsr") : t("toastSwitchedNonVsr"));
   });
 }
 
@@ -120,7 +128,7 @@ function setCompareMode(nextCompareMode) {
 
   updateButtons();
   applyRenderMode();
-  showPlayerToast(compareMode ? "已打开左右对比模式" : "已关闭左右对比模式");
+  showPlayerToast(compareMode ? t("toastCompareOn") : t("toastCompareOff"));
 }
 
 function scheduleMount() {
@@ -277,11 +285,17 @@ function createSmoothButton() {
   icon.append(svg);
   button.append(icon);
 
+  ["pointerdown", "mousedown", "mouseup", "touchstart", "touchend"].forEach((eventName) => {
+    button.addEventListener(eventName, (event) => {
+      event.stopPropagation();
+    }, true);
+  });
+
   button.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
-    setSmoothOverlay(!smoothOverlayEnabled);
-  });
+    toggleSmoothOverlayFromPlayer();
+  }, true);
 
   return button;
 }
@@ -299,8 +313,8 @@ function createSvgElement(name, attributes) {
 function updateButtons() {
   const buttons = document.querySelectorAll(".rtx-vsr-toggle");
   const title = enabled
-    ? "VSR 模式：点击切换到同页 non-VSR 显示"
-    : "non-VSR 模式：点击恢复 VSR 显示";
+    ? t("buttonVsrEnabledTitle")
+    : t("buttonVsrDisabledTitle");
 
   buttons.forEach((button) => {
     button.classList.toggle("is-enabled", enabled);
@@ -312,8 +326,8 @@ function updateButtons() {
 
   const compareButtons = document.querySelectorAll(`.${COMPARE_BUTTON_CLASS}`);
   const compareTitle = compareMode
-    ? "左右对比模式：点击关闭"
-    : "左右对比模式：点击打开";
+    ? t("compareEnabledTitle")
+    : t("compareDisabledTitle");
 
   compareButtons.forEach((button) => {
     button.classList.toggle("is-enabled", compareMode);
@@ -325,12 +339,14 @@ function updateButtons() {
 
   const smoothButtons = document.querySelectorAll(`.${SMOOTH_BUTTON_CLASS}`);
   const smoothTitle = smoothOverlayEnabled
-    ? "Smooth Motion 覆盖层：点击关闭"
-    : "Smooth Motion 覆盖层：点击开启";
+    ? t("smoothEnabledTitle")
+    : t("smoothDisabledTitle");
 
   smoothButtons.forEach((button) => {
     button.classList.toggle("is-enabled", smoothOverlayEnabled);
     button.classList.toggle("is-disabled", !smoothOverlayEnabled);
+    button.classList.toggle("is-busy", smoothOverlayBusy);
+    button.disabled = smoothOverlayBusy;
     button.setAttribute("aria-label", smoothTitle);
     button.setAttribute("aria-pressed", String(smoothOverlayEnabled));
     button.title = smoothTitle;
@@ -339,18 +355,18 @@ function updateButtons() {
 
 function getSwitchErrorMessage(response) {
   if (response?.installRequired) {
-    return "本地切换器未安装，请先运行安装脚本";
+    return t("localSwitcherInstallFirst");
   }
 
   if (response?.error) {
-    return `切换失败：${response.error}`;
+    return t("switchFailedWithError", response.error);
   }
 
   if (chrome.runtime.lastError) {
-    return `切换失败：${chrome.runtime.lastError.message}`;
+    return t("switchFailedWithError", chrome.runtime.lastError.message);
   }
 
-  return "切换失败";
+  return t("switchFailed");
 }
 
 function showPlayerToast(message) {
@@ -449,20 +465,48 @@ async function setSmoothOverlay(nextEnabled) {
   return stopSmoothOverlay("manual");
 }
 
+async function toggleSmoothOverlayFromPlayer() {
+  if (smoothOverlayBusy) {
+    return;
+  }
+
+  const previousEnabled = smoothOverlayEnabled;
+  const nextEnabled = !smoothOverlayEnabled;
+  smoothOverlayBusy = true;
+  updateButtons();
+  showPlayerToast(nextEnabled ? t("popupStartingSmooth") : t("popupStoppingSmooth"));
+
+  try {
+    const response = await setSmoothOverlay(nextEnabled);
+    if (!response?.ok) {
+      smoothOverlayEnabled = previousEnabled;
+      updateButtons();
+      showPlayerToast(getSwitchErrorMessage(response));
+    }
+  } catch (error) {
+    smoothOverlayEnabled = previousEnabled;
+    updateButtons();
+    showPlayerToast(getSwitchErrorMessage({ error: error?.message || String(error) }));
+  } finally {
+    smoothOverlayBusy = false;
+    updateButtons();
+  }
+}
+
 async function startSmoothOverlay(reason) {
   smoothSeekSerial += 1;
   smoothOverlayEnabled = true;
-  const state = getSmoothOverlayState(reason, false);
+  const state = await waitForSmoothOverlayState(reason, false);
   if (!state) {
     smoothOverlayEnabled = false;
     updateButtons();
-    showPlayerToast("没有找到可同步的视频");
-    return { ok: false, error: "No video is available." };
+    showPlayerToast(t("noSyncVideoToast"));
+    return { ok: false, error: t("noVideoAvailable") };
   }
 
   smoothUrl = state.url;
   updateButtons();
-  showPlayerToast("正在启动 Smooth Motion 覆盖层...");
+  showPlayerToast(t("smoothStarting"));
 
   const response = await sendRuntimeMessage({
     type: "smoothOverlayStart",
@@ -473,12 +517,12 @@ async function startSmoothOverlay(reason) {
     smoothOverlayEnabled = false;
     updateButtons();
     showPlayerToast(getSwitchErrorMessage(response));
-    return response || { ok: false, error: "No response." };
+    return response || { ok: false, error: t("noResponse") };
   }
 
   attachSmoothOverlaySync();
   refreshSmoothOverlaySuppression();
-  showPlayerToast("已开启 Smooth Motion 覆盖层");
+  showPlayerToast(t("smoothEnabledToast"));
   queueSmoothOverlaySync("started");
   return response;
 }
@@ -494,8 +538,8 @@ async function stopSmoothOverlay(reason) {
     reason
   });
 
-  showPlayerToast(response?.ok ? "已关闭 Smooth Motion 覆盖层" : getSwitchErrorMessage(response));
-  return response || { ok: false, error: "No response." };
+  showPlayerToast(response?.ok ? t("smoothDisabledToast") : getSwitchErrorMessage(response));
+  return response || { ok: false, error: t("noResponse") };
 }
 
 function attachSmoothOverlaySync() {
@@ -891,21 +935,49 @@ function isSmoothPlayerIdle(player) {
 }
 
 function getActiveSmoothVideo() {
-  const videos = Array.from(document.querySelectorAll("video")).filter((video) => {
-    const rect = video.getBoundingClientRect();
-    return video.isConnected && rect.width >= 16 && rect.height >= 16;
-  });
+  const connectedVideos = Array.from(document.querySelectorAll("video")).filter((video) => video.isConnected);
 
-  if (videos.length === 0) {
+  if (connectedVideos.length === 0) {
     return null;
   }
 
-  const playing = videos.find((video) => !video.paused && !video.ended && video.readyState >= 2);
+  if (bypassState.active && bypassState.video?.isConnected) {
+    return bypassState.video;
+  }
+
+  const visibleVideos = connectedVideos.filter((video) => {
+    const rect = video.getBoundingClientRect();
+    return rect.width >= 16 && rect.height >= 16;
+  });
+
+  const playing = visibleVideos.find((video) => !video.paused && !video.ended && video.readyState >= 2);
   if (playing) {
     return playing;
   }
 
-  return videos
+  const mainVideo = connectedVideos.find((video) => video.classList.contains("html5-main-video"));
+  if (mainVideo) {
+    return mainVideo;
+  }
+
+  const decodedPlaying = connectedVideos.find((video) => (
+    !video.paused &&
+    !video.ended &&
+    video.readyState >= 2 &&
+    video.videoWidth > 0 &&
+    video.videoHeight > 0
+  ));
+  if (decodedPlaying) {
+    return decodedPlaying;
+  }
+
+  if (visibleVideos.length === 0) {
+    return connectedVideos
+      .map((video) => ({ video, area: Math.max(1, video.videoWidth) * Math.max(1, video.videoHeight) }))
+      .sort((a, b) => b.area - a.area)[0]?.video || null;
+  }
+
+  return visibleVideos
     .map((video) => ({ video, area: visibleArea(video.getBoundingClientRect()) }))
     .sort((a, b) => b.area - a.area)[0]?.video || null;
 }
@@ -1050,6 +1122,21 @@ async function syncSmoothOverlay(reason) {
     type: "smoothOverlaySync",
     ...state
   });
+}
+
+async function waitForSmoothOverlayState(reason, forceSeek) {
+  const started = performance.now();
+
+  while (performance.now() - started <= SMOOTH_START_WAIT_MS) {
+    const state = getSmoothOverlayState(reason, forceSeek);
+    if (state) {
+      return state;
+    }
+
+    await new Promise((resolve) => window.setTimeout(resolve, SMOOTH_START_POLL_MS));
+  }
+
+  return null;
 }
 
 function getSmoothOverlayState(reason, forceSeek) {
@@ -1231,15 +1318,18 @@ function resumeVideoAfterFailedSwitch() {
 function applyRenderMode() {
   if (compareMode) {
     enableCanvasBypass("compare");
+    queueSmoothOverlaySync("render-mode-compare");
     return;
   }
 
   if (enabled) {
     disableCanvasBypass();
+    queueSmoothOverlaySync("render-mode-native");
     return;
   }
 
   enableCanvasBypass("full");
+  queueSmoothOverlaySync("render-mode-canvas");
 }
 
 function enableCanvasBypass(mode) {
@@ -1308,7 +1398,7 @@ function createCompareDivider(player) {
   divider.className = COMPARE_DIVIDER_CLASS;
   divider.tabIndex = 0;
   divider.setAttribute("role", "slider");
-  divider.setAttribute("aria-label", "VSR comparison split");
+  divider.setAttribute("aria-label", t("compareDividerAriaLabel"));
   divider.setAttribute("aria-orientation", "horizontal");
 
   const setFromClientX = (clientX) => {

@@ -762,6 +762,11 @@ struct CapturePresenter
             if (g_state.hwnd)
             {
                 MoveOverlayWindow(g_state.hwnd, rect);
+                if (IsWindowVisible(g_state.hwnd))
+                {
+                    d3d.PresentLatest();
+                    DwmFlush();
+                }
             }
         }
     }

@@ -25,9 +25,10 @@ jobs:
         with:
           node-version: 22
 
-      - name: Validate extension JavaScript
+      - name: Validate extension assets
         shell: pwsh
         run: |
+          node -e "const fs=require('fs'); for (const f of ['manifest.json','_locales/en/messages.json','_locales/zh_CN/messages.json','_locales/zh_TW/messages.json']) JSON.parse(fs.readFileSync(f,'utf8'));"
           node --check background.js
           node --check content.js
           node --check popup.js

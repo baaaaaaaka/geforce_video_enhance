@@ -1,19 +1,19 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>YouTube RTX VSR</title>
+    <title>GeForce Video Enhance</title>
     <link rel="stylesheet" href="popup.css">
   </head>
   <body>
     <main class="popup">
       <header class="popup__header">
         <div>
-          <h1>RTX VSR</h1>
-          <p>YouTube 同页显示切换</p>
+          <h1 data-i18n="popupHeading">RTX VSR</h1>
+          <p data-i18n="popupSubtitle">YouTube in-page display switch</p>
         </div>
-        <label class="switch" aria-label="RTX VSR preference">
+        <label class="switch" aria-label="RTX VSR preference" data-i18n-aria-label="vsrToggleAriaLabel">
           <input id="vsrToggle" type="checkbox">
           <span class="switch__track">
             <span class="switch__thumb"></span>
@@ -23,25 +23,23 @@
 
       <section class="status">
         <span class="status__dot" id="statusDot"></span>
-        <span id="statusText">正在读取模式...</span>
+        <span id="statusText" data-i18n="statusLoadingMode">Reading mode...</span>
       </section>
 
-      <p class="note">
-        VSR 模式显示 YouTube 原生视频层。non-VSR 模式在同一个播放器内用 canvas 显示视频帧，
-        用来绕开 Chrome 的视频 overlay/VSR 显示路径。
+      <p class="note" data-i18n="popupVsrNote">
+        VSR mode shows YouTube's native video layer. non-VSR mode draws video frames into a canvas inside the same player to bypass Chrome's video overlay/VSR display path.
       </p>
 
-      <p class="note note--muted">
-        native host 仍保留给测试脚本验证 <code>--disable_vp_super_resolution</code> 路径，
-        用户开关默认不会打开新 Chrome 窗口。
+      <p class="note note--muted" data-i18n="popupNativeNote">
+        The native host is still kept for diagnostic scripts that verify the --disable_vp_super_resolution path. The user-facing switch does not open a new Chrome window by default.
       </p>
 
       <section class="mode-block">
         <div>
-          <h2>AI 插帧覆盖层</h2>
-          <p>用内置 presenter 捕获并重放当前 YouTube 画面。</p>
+          <h2 data-i18n="smoothHeading">AI frame-generation overlay</h2>
+          <p data-i18n="smoothDescription">Capture and replay the current YouTube image with the built-in presenter.</p>
         </div>
-        <label class="switch" aria-label="Smooth Motion overlay preference">
+        <label class="switch" aria-label="Smooth Motion overlay preference" data-i18n-aria-label="smoothToggleAriaLabel">
           <input id="smoothToggle" type="checkbox">
           <span class="switch__track">
             <span class="switch__thumb"></span>
@@ -51,11 +49,11 @@
 
       <section class="status">
         <span class="status__dot" id="smoothStatusDot"></span>
-        <span id="smoothStatusText">正在读取插帧模式...</span>
+        <span id="smoothStatusText" data-i18n="statusLoadingSmooth">Reading frame-generation mode...</span>
       </section>
 
-      <p class="note note--muted">
-        这个开关不会重开 Chrome。开启后覆盖层会跟随播放、暂停和 seek；鼠标呼出 YouTube 控件时会临时露出原生画面，避免挡住控件。
+      <p class="note note--muted" data-i18n="smoothNote">
+        This switch does not restart Chrome. When enabled, the overlay follows play, pause, and seek; it temporarily reveals the native player when YouTube controls are active.
       </p>
     </main>
     <script src="popup.js"></script>

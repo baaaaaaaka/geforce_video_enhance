@@ -37,19 +37,21 @@ jobs:
         shell: pwsh
         run: |
           if ("${{ github.event_name }}" -eq "workflow_dispatch") {
-            $version = "${{ inputs.version }}"
-            $tag = "v$version"
+            $rawVersion = "${{ inputs.version }}"
+            $tag = "v$rawVersion"
           } else {
             $tag = "${{ github.ref_name }}"
-            $version = $tag.TrimStart("v")
+            $rawVersion = $tag.TrimStart("v")
           }
 
+          $packageVersion = $rawVersion -replace "-.*$", ""
+          $isPrerelease = $rawVersion -match "-"
           $repoVersion = (Get-Content -Raw VERSION).Trim()
-          if ($repoVersion -ne $version) {
-            throw "Tag/input version $version does not match VERSION $repoVersion"
+          if ($repoVersion -ne $packageVersion) {
+            throw "Tag/input version $rawVersion resolves to package version $packageVersion, but VERSION is $repoVersion"
           }
 
-          .\scripts\package-release.ps1 -Version $version
+          .\scripts\package-release.ps1 -Version $packageVersion
 
           @(
             "# $tag",
@@ -60,7 +62,8 @@ jobs:
           ) | Set-Content -LiteralPath release-notes.md -Encoding UTF8
 
           "RELEASE_TAG=$tag" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "RELEASE_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "RELEASE_VERSION=$packageVersion" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "RELEASE_PRERELEASE=$($isPrerelease.ToString().ToLowerInvariant())" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Publish GitHub release
         shell: pwsh
@@ -68,4 +71,21 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $zip = "artifacts/release/geforce-video-enhance-$env:RELEASE_VERSION-win-x64.zip"
-          gh release create $env:RELEASE_TAG $zip --title $env:RELEASE_TAG --notes-file release-notes.md --verify-tag
+          $args = @(
+            "release",
+            "create",
+            $env:RELEASE_TAG,
+            $zip,
+            "--title",
+            $env:RELEASE_TAG,
+            "--notes-file",
+            "release-notes.md",
+            "--verify-tag"
+          )
+          if ($env:RELEASE_PRERELEASE -eq "true") {
+            $args += "--prerelease"
+          } else {
+            $args += "--latest"
+          }
+
+          & gh @args

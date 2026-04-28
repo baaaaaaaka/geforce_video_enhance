@@ -1,101 +1,114 @@
 # GeForce Video Enhance
 
-`geforce_video_enhance` 是一个实验性的 Chrome/Edge 扩展，用来在 YouTube 播放器里调试和切换 NVIDIA RTX 视频增强相关路径。当前版本是 `0.1.0`。
+[Chinese README](README.zh-CN.md)
 
-它包含三部分：
+`geforce_video_enhance` is an experimental Chrome/Edge extension for debugging and switching NVIDIA RTX video-enhancement paths inside the YouTube player. The current version is `0.1.1`.
 
-- Manifest V3 扩展：向 YouTube 播放器注入 VSR、对比模式和 Smooth Motion 控制按钮。
-- Windows native messaging host：让扩展可以启动/同步/关闭本机 presenter。
-- WGC + D3D11 presenter：实验性承接 NVIDIA Smooth Motion 的 overlay 路线。
+The project has three parts:
 
-## 功能状态
+- A Manifest V3 extension that injects VSR, comparison, and Smooth Motion controls into the YouTube player.
+- A Windows native messaging host that lets the extension start, sync, and stop a local presenter process.
+- A Windows Graphics Capture + D3D11 presenter that experiments with the NVIDIA Smooth Motion overlay route.
 
-- `VSR`：显示 YouTube 原生 `<video>`，让 Chrome/NVIDIA 默认视频处理路径接管。
-- `non-VSR`：同页 canvas bypass 路径，用于把可见输出从原生 video layer 切到 canvas。该模式仍需要原 `<video>` 解码，不会停止 YouTube 播放链。
-- 对比模式：播放器中间显示可拖动竖线，一侧走原生 video layer，一侧走 canvas bypass，方便观察输出差异。
-- Smooth Motion overlay：由 native host 启动内置 `smooth-presenter.exe`，使用 Windows Graphics Capture 捕获 Chrome 播放器区域，再由独立 D3D11 flip-model 窗口重放到同一位置。
+## Feature Status
 
-Chrome 扩展不能直接修改 NVIDIA App、驱动或控制面板里的全局开关。要让 VSR 或 Smooth Motion 真正生效，必须先在 NVIDIA App/驱动里为浏览器或 presenter 所走的程序路径打开对应功能。
+- `VSR`: shows YouTube's native `<video>` layer and lets Chrome/NVIDIA's normal video-processing path handle output.
+- `non-VSR`: uses an in-page canvas bypass path that draws video frames into a canvas. It still needs the original `<video>` as the decode source and does not stop YouTube playback or decoding.
+- Comparison mode: shows a draggable vertical split in the player. One side uses the native video layer; the other uses the canvas bypass path.
+- Smooth Motion overlay: starts the bundled `smooth-presenter.exe` through the native host. The presenter captures the Chrome player region through Windows Graphics Capture, then re-presents it in an aligned D3D11 flip-model window.
+- Localization: extension UI strings use Chrome `_locales`. English is the default locale; Chinese is used when Chrome's UI language is Chinese.
 
-## 已知限制
+Chrome extensions cannot directly change NVIDIA App, driver, or NVIDIA Control Panel global settings. To make VSR or Smooth Motion actually take effect, first enable the relevant NVIDIA feature for the browser or presenter route in NVIDIA App/driver settings.
 
-- Smooth Motion overlay 是实验性功能。为了保留 YouTube 原生控件体验，用户与播放器交互时 overlay 会短暂隐藏，交互结束后再恢复。
-- Windows Graphics Capture 可能显示系统级捕获边框；是否能隐藏取决于系统权限和 Windows 策略。
-- DevTools 截图不一定能捕获最终显示链路中的 GPU 后处理。判断 Smooth Motion 是否真的生效时，应优先使用 cadence 诊断或外部屏幕采集。
-- 当前 release 是未签名、未上架 Chrome Web Store 的 unpacked extension。
+## Known Limits
 
-## 从 GitHub Release 安装
+- Smooth Motion overlay is experimental. To preserve native YouTube controls, the overlay temporarily hides while the user interacts with the player, then restores itself when the player becomes idle.
+- Windows Graphics Capture may show a system capture border. Whether that border can be hidden depends on Windows policy and permissions.
+- DevTools screenshots do not always include every GPU post-processing stage in the final display path. Prefer cadence diagnostics or external screen capture when validating Smooth Motion.
+- The current release is unsigned and is not published through Chrome Web Store.
 
-1. 打开 GitHub Release 页面：`https://github.com/baaaaaaaka/geforce_video_enhance/releases`
-2. 下载 `geforce-video-enhance-<version>-win-x64.zip`。
-3. 解压到稳定目录。安装后不要移动或删除该目录。
-4. 在解压目录打开 PowerShell，执行：
+## Install From GitHub Release
+
+1. Open the release page: `https://github.com/baaaaaaaka/geforce_video_enhance/releases`
+2. Download `geforce-video-enhance-<version>-win-x64.zip`.
+3. Extract it to a stable folder. Do not delete or move the folder after installation.
+4. Open PowerShell in the extracted folder and run:
 
 ```powershell
 Set-ExecutionPolicy -Scope Process Bypass
 .\install.ps1
 ```
 
-5. 打开 `chrome://extensions/` 或 `edge://extensions/`。
-6. 开启开发者模式。
-7. 点击 `加载已解压的扩展程序` / `Load unpacked`，选择 release 里的 `extension` 目录。
-8. 打开或刷新 YouTube 视频页，播放器控制栏会出现扩展按钮。
+5. Open `chrome://extensions/` or `edge://extensions/`.
+6. Enable Developer mode.
+7. Click `Load unpacked` and select the release's `extension` folder.
+8. Open or reload a YouTube video page. The extension buttons should appear in the player controls.
 
-卸载：
+To uninstall:
 
 ```powershell
 Set-ExecutionPolicy -Scope Process Bypass
 .\uninstall.ps1
 ```
 
-然后在 `chrome://extensions/` 中移除 unpacked extension。
+Then remove the unpacked extension from `chrome://extensions/`.
 
-## 从源码开发安装
+## Development Setup
 
-### 环境要求
+### Requirements
 
-- Windows 10/11 x64。
-- Google Chrome 或 Microsoft Edge。
-- NVIDIA GPU、驱动和 NVIDIA App，并在驱动侧启用需要测试的 VSR/Smooth Motion 功能。
-- .NET SDK 5.0。
-- Visual Studio 2022 Build Tools，包含 C++ 桌面开发工具链。
-- CMake。
-- Node.js 22 或更新版本，用于运行诊断脚本。
-- GitHub CLI 仅在发布到 GitHub 时需要。
+- Windows 10/11 x64.
+- Google Chrome or Microsoft Edge.
+- NVIDIA GPU, driver, and NVIDIA App configured for the VSR/Smooth Motion feature you want to test.
+- .NET SDK 5.0.
+- Visual Studio 2022 Build Tools with the C++ desktop toolchain.
+- CMake.
+- Node.js 22 or newer for diagnostics.
+- GitHub CLI only if you need to publish to GitHub.
 
-### 构建并注册 native host
+### Build And Register The Native Host
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\install-native-host.ps1
 ```
 
-该脚本会：
+The script will:
 
-- 构建 `native-presenter/smooth-presenter.exe`。
-- 发布 `native-host/rtx-vsr-native-host.exe`。
-- 写入 native messaging host manifest。
-- 在 HKCU 下注册 Chrome/Edge native messaging host。
-- 根据 `manifest.json` 的固定 key 计算扩展 ID。
+- Build `native-presenter/smooth-presenter.exe`.
+- Publish `native-host/rtx-vsr-native-host.exe`.
+- Write the native messaging host manifest.
+- Register the native messaging host under HKCU for Chrome/Edge.
+- Compute the extension ID from the fixed `manifest.json` key.
 
-然后在 `chrome://extensions/` 里加载本仓库根目录作为 unpacked extension。
+Then load this repository root as an unpacked extension in `chrome://extensions/`.
 
-源码开发卸载：
+Development uninstall:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\uninstall-native-host.ps1
 ```
 
-## 使用说明
+## Usage
 
-- YouTube 播放器右下角的 `VSR` 按钮用于在原生 video layer 和 non-VSR canvas bypass 之间切换。
-- 分割线按钮用于打开对比模式；拖动竖线可以调整左右两侧比例。
-- Smooth Motion 按钮用于启动或关闭 native overlay。
-- overlay 开启后，扩展会同步播放器位置、可见性、窗口移动、暂停/播放状态和 seek 状态。
-- 鼠标、键盘、触摸或滚轮交互时，overlay 会短暂隐藏以让 YouTube 原生控件可用；交互结束后恢复 overlay。
+- The `VSR` button in the YouTube player switches between the native video layer and the non-VSR canvas bypass.
+- The split button enables comparison mode; drag the vertical divider to change the split ratio.
+- The Smooth Motion button starts or stops the native overlay.
+- When the overlay is enabled, the extension syncs player position, visibility, window movement, play/pause state, and seek state.
+- During mouse, keyboard, touch, or wheel interaction, the overlay temporarily hides so native YouTube controls remain usable.
 
-## 测试和诊断
+## Localization
 
-语法检查：
+The extension uses Chrome's standard `_locales` mechanism:
+
+- `_locales/en/messages.json`: default English UI.
+- `_locales/zh_CN/messages.json`: Simplified Chinese UI.
+- `_locales/zh_TW/messages.json`: Traditional Chinese UI.
+
+Chrome selects the locale from the browser UI language. Chrome usually follows the OS language unless the user overrides Chrome's language settings.
+
+## Tests And Diagnostics
+
+Syntax and manifest/locale JSON validation:
 
 ```powershell
 node --check background.js
@@ -103,31 +116,33 @@ node --check content.js
 node --check popup.js
 ```
 
-扩展 smoke test：
+Extension smoke test:
 
 ```powershell
 node scripts/smoke-test.mjs
 ```
 
-同页视觉回归：
+If the installed Chrome build or enterprise policy blocks command-line `--load-extension`, this smoke test cannot represent manual unpacked-extension loading.
+
+In-page visual regression:
 
 ```powershell
 node scripts/in-page-bypass-visual-test.mjs
 ```
 
-VSR/non-VSR 输出对比：
+VSR/non-VSR output comparison:
 
 ```powershell
 node scripts/output-compare-test.mjs
 ```
 
-Smooth Motion cadence 诊断：
+Smooth Motion cadence diagnostic:
 
 ```powershell
 node scripts/smooth-overlay-diagnostic.mjs
 ```
 
-常用环境变量：
+Common environment variables:
 
 ```powershell
 $env:CHROME_PATH = "C:\Program Files\Google\Chrome\Application\chrome.exe"
@@ -136,63 +151,64 @@ $env:SMOOTH_DIAG_CAPTURE_SECONDS = "8"
 $env:SMOOTH_DIAG_CAPTURE_FPS = "120"
 ```
 
-## 版本管理
+## Versioning
 
-版本号集中在这些位置，发布前必须保持一致：
+Release versions must stay consistent across:
 
 - `VERSION`
-- `manifest.json` 的 `version`
-- `native-host/Program.cs` 的 `HostVersion`
-- Git tag，例如 `v0.1.0`
+- `manifest.json` `version`
+- `native-host/Program.cs` `HostVersion`
+- Git tag, for example `v0.1.1`
 
-打包脚本会检查这些版本是否一致，不一致会直接失败。
+The packaging script checks these values and fails if they do not match.
 
-## 打包 release
+## Build A Release Package
 
-本地生成 Windows x64 release 包：
+Generate a local Windows x64 release package:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\package-release.ps1
 ```
 
-输出位于：
+Outputs:
 
 - `artifacts/release/geforce-video-enhance-<version>-win-x64/`
 - `artifacts/release/geforce-video-enhance-<version>-win-x64.zip`
 
-`artifacts/` 是生成物，不进入 git。
+`artifacts/` is generated output and is intentionally ignored by git.
 
-## GitHub CI 和 Release
+## GitHub CI And Release
 
-仓库包含两个 GitHub Actions workflow：
+The repository includes two GitHub Actions workflows:
 
-- `.github/workflows/ci.yml`：在 `main` push 和 PR 上运行 JS 语法检查、native host build、native presenter build、release packaging 验证，并上传 zip artifact。
-- `.github/workflows/release.yml`：在推送 `v*` tag 时构建 release zip，并创建 GitHub Release。
+- `.github/workflows/ci.yml`: runs on `main` pushes and pull requests. It validates JSON/JS syntax, builds the native host, builds the native presenter, verifies release packaging, and uploads the zip as a CI artifact.
+- `.github/workflows/release.yml`: runs on `v*` tags and creates a GitHub Release with the Windows x64 zip.
 
-标准发布流程：
+Standard release flow:
 
 ```powershell
 git checkout main
 git pull
-# 修改 VERSION、manifest.json、native-host/Program.cs，并更新 CHANGELOG.md
+# Update VERSION, manifest.json, native-host/Program.cs, and CHANGELOG.md
 powershell -ExecutionPolicy Bypass -File scripts\package-release.ps1
 git add .
-git commit -m "Release v0.1.0"
-git tag -a v0.1.0 -m "v0.1.0"
+git commit -m "Release v0.1.1"
+git tag -a v0.1.1 -m "v0.1.1"
 git push origin main --follow-tags
 ```
 
-tag push 后 GitHub Actions 会自动创建 release。也可以手动运行 release workflow。
+Pushing the tag triggers GitHub Actions release publishing. The release workflow can also be run manually.
 
-## 文件结构
+## Repository Layout
 
-- `manifest.json`：扩展清单。
-- `background.js`：native messaging 和 overlay 生命周期管理。
-- `content.js`：注入 YouTube 播放器按钮、状态机和 overlay 同步逻辑。
-- `content.css`：播放器按钮、提示和对比模式样式。
-- `popup.html` / `popup.css` / `popup.js`：扩展弹窗。
-- `native-host/`：Windows native messaging host。
-- `native-presenter/`：WGC + D3D11 presenter。
-- `scripts/`：安装、打包、诊断和回归测试脚本。
-- `release/`：发布包内安装脚本和 release README 模板。
-- `poc/`：历史实验代码，仅保留源码，构建输出被忽略。
+- `manifest.json`: extension manifest.
+- `_locales/`: extension localization resources.
+- `background.js`: native messaging and overlay lifecycle management.
+- `content.js`: YouTube player controls, state machine, and overlay sync logic.
+- `content.css`: player button, toast, and comparison-mode styles.
+- `popup.html` / `popup.css` / `popup.js`: extension popup.
+- `native-host/`: Windows native messaging host.
+- `native-presenter/`: WGC + D3D11 presenter.
+- `scripts/`: install, package, diagnostic, and regression scripts.
+- `release/`: release package installer and README templates.
+- `poc/`: historical experiment source; build output is ignored.

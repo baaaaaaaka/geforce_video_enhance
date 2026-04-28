@@ -61,6 +61,11 @@ if ($manifest.version -ne $Version) {
   throw "manifest.json version ($($manifest.version)) does not match VERSION ($Version)."
 }
 
+Get-ChildItem -LiteralPath (Join-Path $repoRootPath "_locales") -Filter "messages.json" -Recurse |
+  ForEach-Object {
+    Get-Content -Raw -Encoding UTF8 -LiteralPath $_.FullName | ConvertFrom-Json | Out-Null
+  }
+
 $programText = Get-Content -Raw -LiteralPath (Join-Path $repoRootPath "native-host\Program.cs")
 $hostVersionMatch = [regex]::Match($programText, 'HostVersion\s*=\s*"([^"]+)"')
 if (!$hostVersionMatch.Success -or $hostVersionMatch.Groups[1].Value -ne $Version) {
@@ -92,6 +97,7 @@ $extensionFiles = @(
 foreach ($file in $extensionFiles) {
   Copy-Item -LiteralPath (Join-Path $repoRootPath $file) -Destination (Join-Path $extensionDir $file) -Force
 }
+Copy-Item -LiteralPath (Join-Path $repoRootPath "_locales") -Destination (Join-Path $extensionDir "_locales") -Recurse -Force
 
 if (!$SkipBuild) {
   $presenterSourceDir = Join-Path $repoRootPath "native-presenter"

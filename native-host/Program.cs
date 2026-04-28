@@ -13,7 +13,7 @@ namespace RtxVsrNativeHost
 {
     internal static class Program
     {
-        private const string HostVersion = "0.1.0";
+        private const string HostVersion = "0.1.1";
 
         private static async Task<int> Main()
         {

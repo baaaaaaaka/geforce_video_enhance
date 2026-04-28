@@ -1,10 +1,11 @@
 {
   "manifest_version": 3,
-  "name": "GeForce Video Enhance",
-  "short_name": "GF Video",
-  "version": "0.1.0",
+  "name": "__MSG_extensionName__",
+  "short_name": "__MSG_extensionShortName__",
+  "version": "0.1.1",
+  "default_locale": "en",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA5rAS3qHz7+hOgrS38cNZWM5Yb+XsLdzEP9VWFdIwpK8RE0NrgeSwB321R4hDnx8uFGqHqXRWx5i/HQf0OFh4zhPeMf2QKfbNwpOchZP6gAjtyfMZSxz6iKUsHinaM9pMORaegKANRbI5nDKLI/1piefrcz+0ZwUxmIe4Jr+mo02Wbp298DhxIGmFc9pDcSHJo9OKqj6zo2KG6COGuQq3nExlV3uU4SOSEwOtDs17XkgHQW+9MIfhsRO3G5fbTucgzg7Nb/EJVN9NHqYUkh0RxCTWzlfK5TfOxLime8Im0FTqyfXZn4lP93ZBrNh/hPtREcsBxmPvVezZJsubhIRC6QIDAQAB",
-  "description": "Adds YouTube controls for RTX Video Super Resolution and Smooth Motion experiments.",
+  "description": "__MSG_extensionDescription__",
   "minimum_chrome_version": "110",
   "permissions": [
     "activeTab",
@@ -18,7 +19,7 @@
     "https://www.youtube-nocookie.com/*"
   ],
   "action": {
-    "default_title": "YouTube RTX VSR",
+    "default_title": "__MSG_actionTitle__",
     "default_popup": "popup.html"
   },
   "background": {
