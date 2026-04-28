@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  build:
+    name: Build and validate
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 5
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 5.0.x
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Validate extension JavaScript
+        shell: pwsh
+        run: |
+          node --check background.js
+          node --check content.js
+          node --check popup.js
+          node --check scripts/smoke-test.mjs
+          node --check scripts/output-compare-test.mjs
+          node --check scripts/in-page-bypass-visual-test.mjs
+          node --check scripts/smooth-overlay-diagnostic.mjs
+
+      - name: Build native host
+        shell: pwsh
+        run: dotnet build native-host/RtxVsrNativeHost.csproj -c Release
+
+      - name: Build native presenter
+        shell: pwsh
+        run: |
+          cmake -S native-presenter -B native-presenter/build -G "Visual Studio 17 2022" -A x64
+          cmake --build native-presenter/build --config Release
+
+      - name: Validate release package script
+        shell: pwsh
+        run: .\scripts\package-release.ps1
+
+      - name: Upload release package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: geforce-video-enhance-win-x64
+          path: artifacts/release/*.zip

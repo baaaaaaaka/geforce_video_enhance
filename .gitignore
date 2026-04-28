@@ -1,0 +1,36 @@
+# Local tools and generated diagnostics
+.tools/
+artifacts/
+
+# Native host build output
+native-host/bin/
+native-host/obj/
+native-host/com.geforce_video_enhance.rtx_vsr_switch.json
+
+# Native presenter build output
+native-presenter/build/
+
+# Proof-of-concept build output
+poc/**/bin/
+poc/**/obj/
+
+# Node and browser automation scratch data
+node_modules/
+.nyc_output/
+coverage/
+*.log
+*.tmp
+*.temp
+
+# Visual Studio / CMake / MSBuild local state
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+CMakeUserPresets.json
+
+# OS metadata
+Thumbs.db
+Desktop.ini
+.DS_Store

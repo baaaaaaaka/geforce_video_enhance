@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>YouTube RTX VSR</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <main class="popup">
+      <header class="popup__header">
+        <div>
+          <h1>RTX VSR</h1>
+          <p>YouTube 同页显示切换</p>
+        </div>
+        <label class="switch" aria-label="RTX VSR preference">
+          <input id="vsrToggle" type="checkbox">
+          <span class="switch__track">
+            <span class="switch__thumb"></span>
+          </span>
+        </label>
+      </header>
+
+      <section class="status">
+        <span class="status__dot" id="statusDot"></span>
+        <span id="statusText">正在读取模式...</span>
+      </section>
+
+      <p class="note">
+        VSR 模式显示 YouTube 原生视频层。non-VSR 模式在同一个播放器内用 canvas 显示视频帧，
+        用来绕开 Chrome 的视频 overlay/VSR 显示路径。
+      </p>
+
+      <p class="note note--muted">
+        native host 仍保留给测试脚本验证 <code>--disable_vp_super_resolution</code> 路径，
+        用户开关默认不会打开新 Chrome 窗口。
+      </p>
+
+      <section class="mode-block">
+        <div>
+          <h2>AI 插帧覆盖层</h2>
+          <p>用内置 presenter 捕获并重放当前 YouTube 画面。</p>
+        </div>
+        <label class="switch" aria-label="Smooth Motion overlay preference">
+          <input id="smoothToggle" type="checkbox">
+          <span class="switch__track">
+            <span class="switch__thumb"></span>
+          </span>
+        </label>
+      </section>
+
+      <section class="status">
+        <span class="status__dot" id="smoothStatusDot"></span>
+        <span id="smoothStatusText">正在读取插帧模式...</span>
+      </section>
+
+      <p class="note note--muted">
+        这个开关不会重开 Chrome。开启后覆盖层会跟随播放、暂停和 seek；鼠标呼出 YouTube 控件时会临时露出原生画面，避免挡住控件。
+      </p>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>

@@ -1,0 +1,163 @@
+.rtx-vsr-toggle,
+.rtx-vsr-compare-toggle,
+.rtx-smooth-toggle {
+  align-items: center;
+  display: inline-flex !important;
+  justify-content: center;
+  opacity: 0.95;
+}
+
+.rtx-vsr-toggle__icon {
+  display: inline-flex;
+  height: 100%;
+  width: 100%;
+}
+
+.rtx-vsr-toggle svg,
+.rtx-vsr-compare-toggle svg,
+.rtx-smooth-toggle svg {
+  height: 100%;
+  width: 100%;
+}
+
+.rtx-vsr-toggle__chip {
+  fill: rgba(255, 255, 255, 0.12);
+  stroke: rgba(255, 255, 255, 0.88);
+  stroke-width: 2;
+}
+
+.rtx-vsr-toggle__trace,
+.rtx-vsr-toggle__spark {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.88);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.2;
+}
+
+.rtx-vsr-toggle.is-enabled .rtx-vsr-toggle__chip,
+.rtx-vsr-compare-toggle.is-enabled .rtx-vsr-toggle__chip,
+.rtx-smooth-toggle.is-enabled .rtx-vsr-toggle__chip {
+  fill: rgba(118, 185, 0, 0.38);
+  stroke: #76b900;
+}
+
+.rtx-vsr-toggle.is-enabled .rtx-vsr-toggle__trace,
+.rtx-vsr-toggle.is-enabled .rtx-vsr-toggle__spark,
+.rtx-vsr-compare-toggle.is-enabled .rtx-vsr-toggle__trace,
+.rtx-vsr-compare-toggle.is-enabled .rtx-vsr-toggle__spark,
+.rtx-smooth-toggle.is-enabled .rtx-vsr-toggle__trace,
+.rtx-smooth-toggle.is-enabled .rtx-vsr-toggle__spark {
+  stroke: #f4ffe4;
+}
+
+.rtx-vsr-toggle.is-disabled,
+.rtx-vsr-compare-toggle.is-disabled,
+.rtx-smooth-toggle.is-disabled {
+  opacity: 0.58;
+}
+
+.rtx-vsr-toast {
+  background: rgba(18, 18, 18, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 4px;
+  bottom: 72px;
+  color: #fff;
+  font: 500 14px/1.3 Roboto, Arial, sans-serif;
+  left: 50%;
+  max-width: min(360px, calc(100% - 32px));
+  opacity: 0;
+  padding: 9px 12px;
+  pointer-events: none;
+  position: absolute;
+  text-align: center;
+  transform: translate(-50%, 6px);
+  transition: opacity 140ms ease, transform 140ms ease;
+  z-index: 70;
+}
+
+.rtx-vsr-toast.is-visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.rtx-vsr-bypass-host {
+  overflow: hidden;
+  position: relative;
+}
+
+.rtx-vsr-bypass-canvas {
+  background: #000;
+  height: 100%;
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  width: 100%;
+  z-index: 45;
+}
+
+.rtx-vsr-bypass-host.is-compare .rtx-vsr-bypass-canvas {
+  clip-path: inset(0 calc(100% - var(--rtx-vsr-split, 50%)) 0 0);
+}
+
+.rtx-vsr-compare-divider {
+  bottom: 0;
+  cursor: ew-resize;
+  left: 50%;
+  pointer-events: auto;
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  width: 28px;
+  z-index: 2147483646;
+}
+
+.rtx-vsr-compare-divider::before {
+  background: #76b900;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.75), 0 0 18px rgba(0, 0, 0, 0.72);
+  bottom: 0;
+  content: "";
+  left: var(--rtx-vsr-line-offset, 14px);
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  width: 3px;
+}
+
+.rtx-vsr-compare-divider::after {
+  background: rgba(12, 12, 12, 0.86);
+  border: 2px solid #76b900;
+  border-radius: 999px;
+  content: "";
+  height: 28px;
+  left: 50%;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 14px;
+}
+
+video.rtx-vsr-bypass-source {
+  height: 1px !important;
+  left: -10000px !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  position: fixed !important;
+  top: -10000px !important;
+  width: 1px !important;
+}
+
+.html5-video-player.rtx-smooth-native-controls .ytp-chrome-top,
+.html5-video-player.rtx-smooth-native-controls .ytp-chrome-bottom,
+.html5-video-player.rtx-smooth-native-controls .ytp-gradient-top,
+.html5-video-player.rtx-smooth-native-controls .ytp-gradient-bottom,
+.html5-video-player.rtx-smooth-native-controls .ytp-progress-bar-container {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  visibility: visible !important;
+}
+
+.html5-video-player.rtx-smooth-native-controls .ytp-chrome-top,
+.html5-video-player.rtx-smooth-native-controls .ytp-chrome-bottom {
+  transform: translateY(0) !important;
+}

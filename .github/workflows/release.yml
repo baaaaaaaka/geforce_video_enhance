@@ -1,0 +1,71 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version without the leading v"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and publish release
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 5
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 5.0.x
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Build release package
+        shell: pwsh
+        run: |
+          if ("${{ github.event_name }}" -eq "workflow_dispatch") {
+            $version = "${{ inputs.version }}"
+            $tag = "v$version"
+          } else {
+            $tag = "${{ github.ref_name }}"
+            $version = $tag.TrimStart("v")
+          }
+
+          $repoVersion = (Get-Content -Raw VERSION).Trim()
+          if ($repoVersion -ne $version) {
+            throw "Tag/input version $version does not match VERSION $repoVersion"
+          }
+
+          .\scripts\package-release.ps1 -Version $version
+
+          @(
+            "# $tag",
+            "",
+            "See CHANGELOG.md for release notes.",
+            "",
+            "The Windows x64 package contains the unpacked extension, native messaging host, Smooth Motion presenter, and installer scripts."
+          ) | Set-Content -LiteralPath release-notes.md -Encoding UTF8
+
+          "RELEASE_TAG=$tag" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "RELEASE_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Publish GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $zip = "artifacts/release/geforce-video-enhance-$env:RELEASE_VERSION-win-x64.zip"
+          gh release create $env:RELEASE_TAG $zip --title $env:RELEASE_TAG --notes-file release-notes.md --verify-tag
